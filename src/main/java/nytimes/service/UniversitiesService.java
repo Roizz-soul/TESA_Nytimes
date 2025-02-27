@@ -1,16 +1,19 @@
 package nytimes.service;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import nytimes.model.request.RestfulApiAddObjectRequest;
-import nytimes.model.response.ReadRestfulApiAddObjectResponse;
-import nytimes.model.response.ReadUniversitiesResponse;
-import nytimes.model.response.RestfulApiAddObjectResponse;
+import nytimes.model.response.*;
 import okhttp3.*;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class UniversitiesService {
-    public ReadUniversitiesResponse unveritieList() {
+    public ReadUniversitiesResponse universitiesList(String country) {
         //step 1: initialise http client
         //get http client
         var client = new OkHttpClient();
@@ -23,38 +26,36 @@ public class UniversitiesService {
 
         // Build URL with query parameters
         HttpUrl.Builder urlBuilder = HttpUrl.parse(endpoint).newBuilder();
-        var builtUrl = urlBuilder.build();
 
         urlBuilder.addQueryParameter("name", "");
+        urlBuilder.addQueryParameter("country", country);
+        System.out.println(urlBuilder.toString());
 
-        // Create request body
-        var body = RequestBody.create(
-                jsonBody,
-                MediaType.parse("application/json; charset=utf-8")
-        );
+        var builtUrl = urlBuilder.build();
 
         // Create request
         var request = new Request.Builder()
                 .url(builtUrl)
-                .post(body)
                 .build();
 
         try {
             var apiResponse = client.newCall(request).execute();
             if (apiResponse.isSuccessful()) {
                 String responseBody = apiResponse.body().string();
-                var apiCreatePostResponse = gson.fromJson(responseBody, RestfulApiAddObjectResponse.class);
+                Type listType = new TypeToken<ArrayList<UniversitiesResponse>>() {}.getType();
+                ArrayList<UniversitiesResponse> universitiesList = gson.fromJson(responseBody, listType);
 
-                return new ReadRestfulApiAddObjectResponse("00", "completed", apiCreatePostResponse);
+
+                return new ReadUniversitiesResponse("00", "completed", universitiesList);
             }
 
-            return new ReadRestfulApiAddObjectResponse("106", apiResponse.message(), new RestfulApiAddObjectResponse());
+            return new ReadUniversitiesResponse("106", apiResponse.message(), new ArrayList<>(List.of(new UniversitiesResponse())));
         } catch (Exception ex) {
 
             System.out.println(">> EXCEPTION ");
             System.out.println(ex.getMessage());
 
-            return new ReadRestfulApiAddObjectResponse("106", ex.getMessage(), new RestfulApiAddObjectResponse());
+            return new ReadUniversitiesResponse("106", ex.getMessage(), new ArrayList<>(List.of(new UniversitiesResponse())));
 
         }
 
